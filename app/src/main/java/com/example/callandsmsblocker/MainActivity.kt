@@ -35,10 +35,21 @@ class MainActivity : AppCompatActivity() {
             Toast.makeText(this, "已导入默认号段（请在黑名单列表中查看）", Toast.LENGTH_SHORT).show()
         }
 
-        val btnExport = Button(this).apply { text = "导出当前黑名单为 JSON" }
+        val btnProvinceSelect = Button(this).apply { text = "按省/市选择导入" }
+        btnProvinceSelect.setOnClickListener {
+            startActivity(Intent(this, ProvinceSelectionActivity::class.java))
+        }
+
+        val btnExport = Button(this).apply { text = "导出当前黑名单与拦截记录" }
         btnExport.setOnClickListener {
-            val path = mgr.exportPrefixesToFile(this)
+            val prefixes = mgr.getPrefixes()
+            val path = InterceptLogManager.exportLogsAndPrefixes(this, prefixes)
             if (path != null) Toast.makeText(this, "已导出至 $path", Toast.LENGTH_LONG).show() else Toast.makeText(this, "导出失败", Toast.LENGTH_SHORT).show()
+        }
+
+        val btnViewLogs = Button(this).apply { text = "查看拦截日志" }
+        btnViewLogs.setOnClickListener {
+            startActivity(Intent(this, LogsActivity::class.java))
         }
 
         val et = EditText(this).apply { hint = "添加前缀或完整号码，逗号分隔（如 +8610,+86137,+8613800138000）" }
@@ -55,7 +66,9 @@ class MainActivity : AppCompatActivity() {
             addView(btnSetSms)
             addView(btnCallScreening)
             addView(btnImportDefaults)
+            addView(btnProvinceSelect)
             addView(btnExport)
+            addView(btnViewLogs)
             addView(et)
             addView(btnSave)
         }

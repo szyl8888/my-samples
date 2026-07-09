@@ -28,6 +28,8 @@ class SmsReceiver : BroadcastReceiver() {
 
             if (manager.isBlockedNumber(normalized)) {
                 Log.i("SmsReceiver", "Blocked SMS from $normalized")
+                // Log the blocked SMS
+                InterceptLogManager.addSmsLog(context, normalized, body.toString(), System.currentTimeMillis())
                 abortBroadcast()
                 return
             }

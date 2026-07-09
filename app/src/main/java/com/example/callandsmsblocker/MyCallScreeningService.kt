@@ -9,6 +9,10 @@ class MyCallScreeningService : CallScreeningService() {
         val normalized = Utils.normalizeNumber(raw)
         val manager = BlacklistManager.get(this)
         val shouldBlock = manager.isBlockedNumber(normalized)
+        if (shouldBlock) {
+            // Log the blocked call
+            InterceptLogManager.addCallLog(this, normalized, System.currentTimeMillis())
+        }
         val response = if (shouldBlock) {
             CallResponse.Builder()
                 .setDisallowCall(true)
