@@ -5,82 +5,70 @@ import android.util.Log
 import org.json.JSONArray
 import org.json.JSONObject
 
-data class InterceptLogEntry(val type: String, val number: String, val timestamp: Long, val content: String? = null) {
-    fun toJson(): JSONObject {
-        val obj = JSONObject()
-        obj.put("type", type)
-        obj.put("number", number)
-        obj.put("timestamp", timestamp)
-        if (content != null) obj.put("content", content)
-        return obj
-    }
-    companion object {
-        fun fromJson(o: JSONObject): InterceptLogEntry = InterceptLogEntry(
-            type = o.optString("type", "call"),
-            number = o.optString("number", ""),
-            timestamp = o.optLong("timestamp", 0L),
-            content = if (o.has("content")) o.optString("content") else null
-        )
-    }
-}
-
 object InterceptLogManager {
-    private const val PREFS = "blk"
-    private const val KEY_LOGS = "intercept_logs"
-
     fun addCallLog(context: Context, number: String, timestamp: Long) {
-        addLog(context, InterceptLogEntry("call", number, timestamp, null))
-    }
-
-    fun addSmsLog(context: Context, number: String, body: String, timestamp: Long) {
-        addLog(context, InterceptLogEntry("sms", number, timestamp, body))
-    }
-
-    private fun addLog(context: Context, entry: InterceptLogEntry) {
         try {
-            val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-            val raw = prefs.getString(KEY_LOGS, null)
-            val arr = if (raw.isNullOrEmpty()) JSONArray() else JSONArray(raw)
-            arr.put(entry.toJson())
-            prefs.edit().putString(KEY_LOGS, arr.toString()).apply()
+            val db = data.AppDatabase.get(context)
+            val dao = db.interceptLogDao()
+            dao.insert(data.InterceptLogEntity(type="call", number = number, timestamp = timestamp, content = null))
         } catch (e: Exception) {
-            Log.e("InterceptLogManager", "addLog failed: ${e.message}")
+            Log.e("InterceptLogManager", "addCallLog failed: ${e.message}")
         }
     }
 
-    fun getLogs(context: Context): List<InterceptLogEntry> {
+    fun addSmsLog(context: Context, number: String, body: String, timestamp: Long) {
         try {
-            val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-            val raw = prefs.getString(KEY_LOGS, null) ?: return emptyList()
-            val arr = JSONArray(raw)
-            val out = mutableListOf<InterceptLogEntry>()
-            for (i in 0 until arr.length()) {
-                val o = arr.optJSONObject(i) ?: continue
-                out.add(InterceptLogEntry.fromJson(o))
-            }
-            return out.sortedByDescending { it.timestamp }
+            val db = data.AppDatabase.get(context)
+            val dao = db.interceptLogDao()
+            dao.insert(data.InterceptLogEntity(type="sms", number = number, timestamp = timestamp, content = body))
+        } catch (e: Exception) {
+            Log.e("InterceptLogManager", "addSmsLog failed: ${e.message}")
+        }
+    }
+
+    fun getLogs(context: Context): List<data.InterceptLogEntity> {
+        return try {
+            val db = data.AppDatabase.get(context)
+            db.interceptLogDao().getAll()
         } catch (e: Exception) {
             Log.e("InterceptLogManager", "getLogs failed: ${e.message}")
-            return emptyList()
+            emptyList()
         }
     }
 
     fun clearLogs(context: Context) {
-        val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-        prefs.edit().remove(KEY_LOGS).apply()
+        try {
+            val db = data.AppDatabase.get(context)
+            db.interceptLogDao().clearAll()
+        } catch (e: Exception) {
+            Log.e("InterceptLogManager", "clearLogs failed: ${e.message}")
+        }
     }
 
-    // Export logs (and optionally prefixes) to a JSON file in app external files exports dir
-    fun exportLogsAndPrefixes(context: Context, prefixes: List<String>): String? {
+    fun exportLogsAndPrefixes(context: Context, prefixes: List<String>, typeFilter: String? = null, from: Long? = null, to: Long? = null): String? {
         try {
-            val logs = getLogs(context)
+            val db = data.AppDatabase.get(context)
+            val dao = db.interceptLogDao()
+            val logs = when {
+                typeFilter != null && from != null && to != null -> dao.getByTypeAndTime(typeFilter, from, to)
+                typeFilter != null && from == null && to == null -> dao.getByType(typeFilter)
+                typeFilter == null && from != null && to != null -> dao.getByTimeRange(from, to)
+                else -> dao.getAll()
+            }
             val root = JSONObject()
             root.put("exported_at", System.currentTimeMillis())
             val pArr = JSONArray()
             prefixes.forEach { pArr.put(it) }
             root.put("prefixes", pArr)
             val lArr = JSONArray()
-            logs.forEach { lArr.put(it.toJson()) }
+            logs.forEach { e ->
+                val o = JSONObject()
+                o.put("type", e.type)
+                o.put("number", e.number)
+                o.put("timestamp", e.timestamp)
+                if (e.content != null) o.put("content", e.content)
+                lArr.put(o)
+            }
             root.put("intercept_logs", lArr)
 
             val exportsDir = java.io.File(context.getExternalFilesDir(null), "exports")
