@@ -29,6 +29,18 @@ class MainActivity : AppCompatActivity() {
         val btnCallScreening = Button(this).apply { text = "打开来电筛选设置" }
         btnCallScreening.setOnClickListener { openCallScreeningSettings() }
 
+        val btnImportDefaults = Button(this).apply { text = "导入默认号段(按省市)" }
+        btnImportDefaults.setOnClickListener {
+            mgr.loadDefaultPrefixesFromAssets(this)
+            Toast.makeText(this, "已导入默认号段（请在黑名单列表中查看）", Toast.LENGTH_SHORT).show()
+        }
+
+        val btnExport = Button(this).apply { text = "导出当前黑名单为 JSON" }
+        btnExport.setOnClickListener {
+            val path = mgr.exportPrefixesToFile(this)
+            if (path != null) Toast.makeText(this, "已导出至 $path", Toast.LENGTH_LONG).show() else Toast.makeText(this, "导出失败", Toast.LENGTH_SHORT).show()
+        }
+
         val et = EditText(this).apply { hint = "添加前缀或完整号码，逗号分隔（如 +8610,+86137,+8613800138000）" }
         val btnSave = Button(this).apply { text = "保存黑名单/前缀" }
         btnSave.setOnClickListener {
@@ -42,6 +54,8 @@ class MainActivity : AppCompatActivity() {
             orientation = LinearLayout.VERTICAL
             addView(btnSetSms)
             addView(btnCallScreening)
+            addView(btnImportDefaults)
+            addView(btnExport)
             addView(et)
             addView(btnSave)
         }
