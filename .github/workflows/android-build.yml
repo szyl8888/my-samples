@@ -27,7 +27,7 @@
     with:
       name: app-debug-apk
       path: app/build/outputs/apk/debug/app-debug.apk
-        - name: Download APK artifact
+  - name: Download APK artifact
     uses: actions/download-artifact@v4
     with:
       name: app-debug-apk
