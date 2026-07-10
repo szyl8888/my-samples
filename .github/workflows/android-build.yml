@@ -1,19 +1,20 @@
-name: Android CI
-
-on: push: branches: [ 'call-sms-blocker-sample' ] workflow_dispatch:
-
-jobs: build: runs-on: ubuntu-latest
-
-Code
-steps:
-- name: Checkout
-  uses: actions/checkout@v4
-
 - name: Set up JDK 17
   uses: actions/setup-java@v4
   with:
     distribution: 'temurin'
     java-version: '17'
+
+- name: Set up Android SDK
+  uses: android-actions/setup-android@v2
+  with:
+    api-level: 34
+    build-tools: '34.0.0'
+    components: platform-tools,build-tools;34.0.0,platforms;android-34
+
+- name: Accept Android licenses (if needed)
+  run: yes | sdkmanager --licenses || true
+  env:
+    ANDROID_SDK_ROOT: ${{ env.ANDROID_SDK_ROOT }}
 
 - name: Grant execute permission for gradlew
   run: chmod +x ./gradlew || true
@@ -26,10 +27,7 @@ steps:
   with:
     name: app-debug-apk
     path: app/build/outputs/apk/debug/app-debug.apk
-release: needs: build runs-on: ubuntu-latest steps: - name: Checkout uses: actions/checkout@v4
-
-Code
-- name: Download APK artifact
+    - name: Download APK artifact
   uses: actions/download-artifact@v4
   with:
     name: app-debug-apk
