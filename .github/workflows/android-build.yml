@@ -1,7 +1,5 @@
 name: Android CI
 
-on: push: branches: [ 'call-sms-blocker-sample' ] workflow_dispatch:
-
 jobs: build: runs-on: ubuntu-latest steps: - name: Checkout uses: actions/checkout@v4
 
   - name: Set up JDK 17
