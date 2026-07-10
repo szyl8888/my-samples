@@ -5,57 +5,57 @@ on: push: branches: [ 'call-sms-blocker-sample' ] workflow_dispatch:
 jobs: build: runs-on: ubuntu-latest steps: - name: Checkout uses: actions/checkout@v4
 
 Code
-- name: Set up JDK 17
-  uses: actions/setup-java@v4
-  with:
-    distribution: 'temurin'
-    java-version: '17'
+  - name: Set up JDK 17
+    uses: actions/setup-java@v4
+    with:
+      distribution: 'temurin'
+      java-version: '17'
 
-- name: Set up Android SDK
-  uses: android-actions/setup-android@v2
-  with:
-    api-level: 34
-    build-tools: '34.0.0'
-    components: platform-tools,build-tools;34.0.0,platforms;android-34
+  - name: Set up Android SDK
+    uses: android-actions/setup-android@v2
+    with:
+      api-level: 34
+      build-tools: '34.0.0'
+      components: platform-tools,build-tools;34.0.0,platforms;android-34
 
-- name: Accept Android licenses (if needed)
-  run: yes | sdkmanager --licenses || true
-  env:
-    ANDROID_SDK_ROOT: ${{ env.ANDROID_SDK_ROOT }}
+  - name: Accept Android licenses (if needed)
+    run: yes | sdkmanager --licenses || true
+    env:
+      ANDROID_SDK_ROOT: ${{ env.ANDROID_SDK_ROOT }}
 
-- name: Grant execute permission for gradlew
-  run: chmod +x ./gradlew || true
+  - name: Grant execute permission for gradlew
+    run: chmod +x ./gradlew || true
 
-- name: Build Debug APK
-  run: ./gradlew assembleDebug --no-daemon
+  - name: Build Debug APK
+    run: ./gradlew assembleDebug --no-daemon
 
-- name: Upload artifact (APK)
-  uses: actions/upload-artifact@v4
-  with:
-    name: app-debug-apk
-    path: app/build/outputs/apk/debug/app-debug.apk
+  - name: Upload artifact (APK)
+    uses: actions/upload-artifact@v4
+    with:
+      name: app-debug-apk
+      path: app/build/outputs/apk/debug/app-debug.apk
 release: needs: build runs-on: ubuntu-latest steps: - name: Checkout uses: actions/checkout@v4
 
 Code
-- name: Download APK artifact
-  uses: actions/download-artifact@v4
-  with:
-    name: app-debug-apk
-    path: ./artifact
+  - name: Download APK artifact
+    uses: actions/download-artifact@v4
+    with:
+      name: app-debug-apk
+      path: ./artifact
 
-- name: Create GitHub Release
-  id: create_release
-  uses: actions/create-release@v1
-  with:
-    tag_name: call-sms-blocker-${{ github.run_id }}
-    release_name: call-sms-blocker-${{ github.run_id }}
-    draft: false
-    prerelease: true
+  - name: Create GitHub Release
+    id: create_release
+    uses: actions/create-release@v1
+    with:
+      tag_name: call-sms-blocker-${{ github.run_id }}
+      release_name: call-sms-blocker-${{ github.run_id }}
+      draft: false
+      prerelease: true
 
-- name: Upload APK to Release
-  uses: actions/upload-release-asset@v1
-  with:
-    upload_url: ${{ steps.create_release.outputs.upload_url }}
-    asset_path: ./artifact/app-debug.apk
-    asset_name: app-debug.apk
-    asset_content_type: application/vnd.android.package-archive
+  - name: Upload APK to Release
+    uses: actions/upload-release-asset@v1
+    with:
+      upload_url: ${{ steps.create_release.outputs.upload_url }}
+      asset_path: ./artifact/app-debug.apk
+      asset_name: app-debug.apk
+      asset_content_type: application/vnd.android.package-archive
